@@ -10,21 +10,26 @@ public class Tray : IDisposable
 
     private NotifyIcon notifyIcon;
     private ContextMenuStrip contextMenu;
-    private ToolStripMenuItem menuItem_ShowWindow;
-    private ToolStripMenuItem menuItem_HideWindow;
-    private ToolStripMenuItem menuItem_Windowed;
-    private ToolStripMenuItem menuItem_Quit;
+    private ToolStripMenuItem[] menuItems;
 
-    public void InitTray(string iconText, Texture2D iconTexture)
+    public struct MenuItem
+    {
+        public string buttonText;
+        public EventHandler callback;
+
+        public MenuItem(string text, EventHandler e)
+        {
+            this.buttonText = text;
+            this.callback = e;
+        }
+    }
+
+    public void InitTray(string iconText, Texture2D iconTexture, MenuItem[] menuButtons)
     {
         this.hwnd = Win32API.GetForegroundWindow();
 
         // ===== ContextMenu (Right Click) =====
         this.contextMenu = new ContextMenuStrip();
-        this.menuItem_ShowWindow = new ToolStripMenuItem();
-        this.menuItem_HideWindow = new ToolStripMenuItem();
-        this.menuItem_Windowed = new ToolStripMenuItem();
-        this.menuItem_Quit = new ToolStripMenuItem();
 
         // ===== NotifyIcon =====
         this.notifyIcon = new NotifyIcon();
@@ -37,44 +42,27 @@ public class Tray : IDisposable
         // ===== ContextMenu Items =====
         this.contextMenu.SuspendLayout();
 
-        var menuItems = new ToolStripMenuItem[]
-            {
-                this.menuItem_ShowWindow,
-                this.menuItem_HideWindow,
-                this.menuItem_Windowed,
-                this.menuItem_Quit
-            };
-
         const int menuPadding = 1;
-        const int menuWidth = 180;
+        const int menuWidth = 160;
         const int menuHeight = 22;
+        int l = menuButtons.Length;
 
-        this.contextMenu.Items.AddRange(menuItems);
-        this.contextMenu.Size = new Size(menuWidth + menuPadding,
-            (menuItems.Length + menuPadding) * menuHeight);
+        this.menuItems = new ToolStripMenuItem[l];
 
-        this.menuItem_ShowWindow.Size = new Size(menuWidth, menuHeight);
-        this.menuItem_ShowWindow.Text = "Show Window";
-        this.menuItem_ShowWindow.Click += (sender, e) => Win32API.Show(this.hwnd);
-
-        this.menuItem_HideWindow.Size = new Size(menuWidth, menuHeight);
-        this.menuItem_HideWindow.Text = "Hide Window";
-        this.menuItem_HideWindow.Click += (sender, e) => Win32API.Hide(this.hwnd);
-
-        this.menuItem_Windowed.Size = new Size(menuWidth, menuHeight);
-        this.menuItem_Windowed.Text = "Windowed";
-        this.menuItem_Windowed.Click += (sender, e) => UnityEngine.Screen.SetResolution(1280, 720, false);
-
-        this.menuItem_Quit.Size = new Size(menuWidth, menuHeight);
-        this.menuItem_Quit.Text = "Quit";
-        this.menuItem_Quit.Click += (sender, e) =>
+        for (int i = 0; i < l; i++)
         {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.ExitPlaymode();
-#else
-            UnityEngine.Application.Quit();
-#endif
-        };
+            var item = new ToolStripMenuItem();
+
+            item.Size = new Size(menuWidth, menuHeight);
+            item.Text = menuButtons[i].buttonText;
+            item.Click += menuButtons[i].callback;
+
+            this.menuItems[i] = item;
+        }
+
+        this.contextMenu.Items.AddRange(this.menuItems);
+        this.contextMenu.Size = new Size(menuWidth + menuPadding,
+            (l + menuPadding) * menuHeight);
 
         this.contextMenu.ResumeLayout(false);
     }
@@ -84,14 +72,16 @@ public class Tray : IDisposable
         this.notifyIcon.ShowBalloonTip(timeout, title, content, ToolTipIcon.Info);
     }
 
+    public void ShowWindow() => Win32API.Show(this.hwnd);
+    public void HideWindow() => Win32API.Hide(this.hwnd);
+    public void ShowTray() => this.notifyIcon.Visible = true;
+    public void HideTray() => this.notifyIcon.Visible = false;
+
     private void OnMouseClick(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left)
             Win32API.Show(this.hwnd);
     }
-
-    public void ShowTray() => this.notifyIcon.Visible = true;
-    public void HideTray() => this.notifyIcon.Visible = false;
 
     public void Dispose()
     {
@@ -99,10 +89,8 @@ public class Tray : IDisposable
         this.notifyIcon?.Dispose();
 
         this.contextMenu?.Dispose();
-        this.menuItem_ShowWindow?.Dispose();
-        this.menuItem_HideWindow?.Dispose();
-        this.menuItem_Windowed?.Dispose();
-        this.menuItem_Quit?.Dispose();
+        foreach (var item in this.menuItems)
+            item?.Dispose();
 
         this.hwnd = IntPtr.Zero;
     }

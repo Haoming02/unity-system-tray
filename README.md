@@ -15,10 +15,9 @@ A simple script that adds an icon to the system tray
 > A demo script is included
 
 - Create a `Tray` object
-- Call `InitTray()` with the title of the icon and the `Texture2D` for the icon
-- You can call `TriggerBalloonTip()` to trigger a notification
-- You may also edit the `SystemTray.cs` to add/remove the buttons shown when right-clicking the icon
-- Remember to `Dispose()` the `Tray` object
+- Call `InitTray()` with the title of the icon and the `Texture2D` for the icon, as well as an array of buttons to be shown when right-clicking the icon
+- You may can call `TriggerBalloonTip()` to trigger a Windows notification
+- Remember to call `Dispose()` on the `Tray` object when quitting
 
 ## Known Issues
 - The editor sometimes crashes when recompiling the scripts
