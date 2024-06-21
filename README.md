@@ -3,6 +3,14 @@ A simple script that adds an icon to the system tray
 
 > **Reference:** https://www.programmersought.com/article/23467662017/
 
+## Prerequisite
+- Create a `csc.rsp` file and add the following:
+    ```
+    -r:System.Drawing.dll
+    -r:System.Windows.Forms.dll
+    ```
+- Go to **Edit** -> **Project Settings** -> **Player** -> **Other Settings** -> **API Compatibility Level**, set it to `.NET 4.x` *(or `.NET Framework` in other Unity versions)*
+
 ## How to Use
 > A demo script is included
 
