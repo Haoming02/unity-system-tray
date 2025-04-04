@@ -1,24 +1,25 @@
 ﻿# Unity System Tray
-A simple script that adds an icon to the system tray
+A simple script that adds a system tray (notificaion) icon for Unity applications
 
-> **Reference:** https://www.programmersought.com/article/23467662017/
-
-## Prerequisite
-- Create a `csc.rsp` file and add the following:
-    ```
-    -r:System.Drawing.dll
-    -r:System.Windows.Forms.dll
-    ```
-- Go to **Edit** -> **Project Settings** -> **Player** -> **Other Settings** -> **API Compatibility Level**, set it to `.NET 4.x` *(or `.NET Framework` in other Unity versions)*
+> [!Important]
+> Since the script uses functions from `user32.dll`, it is only usable on **Windows** systems
 
 ## How to Use
-> A demo script is included
 
-- Create a `Tray` object
-- Call `InitTray()` with the title of the icon and the `Texture2D` for the icon, as well as an array of buttons to be shown when right-clicking the icon
-- You may can call `TriggerBalloonTip()` to trigger a Windows notification
-- Remember to call `Dispose()` on the `Tray` object when quitting
+- Call the `TrayIcon.Init` function:
+    - **appName:** Just an internal `string`, will not be visible
+    - **tooltip:** Shows up when you hover the icon
+    - **iconTexture:** Icon texture :skull:
+    - **actions:** A `List` of `string`, `Action` pairs
+        - For regular strings, it will be shown as an option in the menu when right-clicking the icon
+        - Use `TrayIcon.LEFT_CLICK` for when left-clicking the icon directly
+        - Use `TrayIcon.SEPARATOR` to add a divider in the menu
 
-## Known Issues
-- The editor sometimes crashes when recompiling the scripts
-- When entering **Play Mode** after the first time, there will be an error popup...
+- Call `TrayIcon.ShowBalloonTip` to trigger a notification
+
+> [!Tip]
+> Check out the included Demo scene
+
+<hr>
+
+<p align="center"><b><i>Special Thanks: Gemini 2.5 Pro</i></b></p>
