@@ -20,6 +20,8 @@ namespace Utils
 
         private static WndProcDelegate wndProcDelegate;
 
+        private const char MultiLevelSplitChar = '\\';
+
         /// <summary>Create a System Tray Icon</summary>
         /// <param name="appName">An internal classifier (not visible)</param>
         /// <param name="tooltip">The string that shows up when hovering the icon</param>
@@ -161,6 +163,15 @@ namespace Utils
             return true;
         }
 
+        class MultiLevelMenuItem
+        {
+            public uint ID;
+            public IntPtr MenuID;
+            public string Name;
+            public MultiLevelMenuItem Parent;
+            public List<MultiLevelMenuItem> Children = new List<MultiLevelMenuItem>();
+        }
+
         private static void ShowContextMenu()
         {
             if (!WinAPI.GetCursorPos(out POINT pt))
@@ -168,14 +179,90 @@ namespace Utils
 
             IntPtr hMenu = WinAPI.CreatePopupMenu();
             if (hMenu == IntPtr.Zero) return;
-
-            foreach (var pair in ActionMappings)
+            
+            Dictionary<string, MultiLevelMenuItem> items = new();
+            Queue<MultiLevelMenuItem> menus = new();
+            foreach (var info in ActionMappings)
             {
-                if (pair.Value == SEPARATOR)
-                    WinAPI.AppendMenu(hMenu, MF_SEPARATOR, 0, null);
+                string[] paths = info.Value.Split(MultiLevelSplitChar);
+                var crtPath = string.Empty;
+                MultiLevelMenuItem parent = null;
+                foreach (var p in paths)
+                {
+                    crtPath += p + "\\";
+                    MultiLevelMenuItem crt = null;
+                    if (items.TryGetValue(crtPath, out var item))
+                    {
+                        crt = item;
+                    }
+                    else
+                    {
+                        crt = new MultiLevelMenuItem();
+                        crt.Name = p;
+                        items.Add(crtPath, crt);
+                    }
+            
+                    if (parent == null)
+                    {
+                        if (menus.Contains(crt) == false)
+                        {
+                            menus.Enqueue(crt);
+                        }
+                    }
+                    else
+                    {
+                        crt.Parent = parent;
+                        parent.Children.Add(crt);
+                    }
+            
+                    parent = crt;
+                }
+            
+                if (parent == null)
+                {
+                    Debug.LogError($"Wrong Path: {info.Value}");
+                }
                 else
-                    WinAPI.AppendMenu(hMenu, MF_STRING, pair.Key, pair.Value);
+                {
+                    parent.ID = info.Key;
+                }
             }
+            
+            while (menus.Count > 0)
+            {
+                var crt = menus.Dequeue();
+            
+                var parent = crt.Parent?.MenuID ?? hMenu;
+            
+                if (crt.Name == SEPARATOR)
+                {
+                    WinAPI.AppendMenu(parent, MF_SEPARATOR, 0, null);
+                    continue;
+                }
+            
+                if (crt.Children.Count > 0)
+                {
+                    IntPtr subMenu = WinAPI.CreatePopupMenu();
+                    crt.MenuID = subMenu;
+                    foreach (var child in crt.Children)
+                    {
+                        menus.Enqueue(child);
+                    }
+                    WinAPI.AppendMenu(parent,  MF_STRING|MF_POPUP, (uint)subMenu, crt.Name);
+                }
+                else
+                {
+                    WinAPI.AppendMenu(parent,  MF_STRING, crt.ID, crt.Name);
+                }
+            }
+
+            // foreach (var pair in ActionMappings)
+            // {
+            //     if (pair.Value == SEPARATOR)
+            //         WinAPI.AppendMenu(hMenu, MF_SEPARATOR, 0, null);
+            //     else
+            //         WinAPI.AppendMenu(hMenu, MF_STRING, pair.Key, pair.Value);
+            // }
 
             WinAPI.SetForegroundWindow(messageWindowHandle);
             WinAPI.TrackPopupMenuEx(hMenu, TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, pt.X, pt.Y, messageWindowHandle, IntPtr.Zero);
