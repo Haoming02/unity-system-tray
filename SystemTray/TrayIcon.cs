@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using AOT;
 
 namespace Utils
 {
@@ -182,6 +183,7 @@ namespace Utils
             WinAPI.DestroyMenu(hMenu);
         }
 
+        [MonoPInvokeCallback(typeof(WndProcDelegate))]
         private static IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             switch (msg)
