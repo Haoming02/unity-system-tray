@@ -14,8 +14,8 @@ public class TrayDemo : MonoBehaviour
     private Image demoImage;
 
     private void Greet() { Debug.Log("Icon Left Clicked!"); }
-    private void TurnImageRed() { demoImage.color = Color.red; }
-    private void TurnImageBlue() { demoImage.color = Color.blue; }
+    private void Rotate() { demoImage.gameObject.transform.Rotate(0.0f, 0.0f, 30.0f); }
+    private void ChangeImageColor(Color color) { demoImage.color = color; }
 
     private void Stop()
     {
@@ -30,8 +30,11 @@ public class TrayDemo : MonoBehaviour
     {
         var context = new List<(string, Action)>() {
             (TrayIcon.LEFT_CLICK, Greet),
-            ("Turn Image Red", TurnImageRed),
-            ("Turn Image Blue", TurnImageBlue),
+            ("Rotate Image", Rotate),
+            ("Change Image Color\\Red", () => ChangeImageColor(Color.red)),
+            ("Change Image Color\\Green",() => ChangeImageColor(Color.green)),
+            ("Change Image Color\\Yellow", () => ChangeImageColor(Color.yellow)),
+            ("Change Image Color\\Blue", () => ChangeImageColor(Color.blue)),
             (TrayIcon.SEPARATOR, null),
             ("Quit", Stop)
         };
