@@ -1,6 +1,7 @@
 using AOT;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -20,8 +21,6 @@ namespace Utils
         private static Action OnLeftClick;
 
         private static WndProcDelegate wndProcDelegate;
-
-        private const char MultiLevelSplitChar = '\\';
 
         /// <summary>Create a System Tray Icon</summary>
         /// <param name="appName">An internal classifier (not visible)</param>
@@ -164,13 +163,19 @@ namespace Utils
             return true;
         }
 
-        class MultiLevelMenuItem
+        private class MultiLevelMenuItem
         {
             public uint ID;
             public IntPtr MenuID;
             public string Name;
             public MultiLevelMenuItem Parent;
-            public List<MultiLevelMenuItem> Children = new List<MultiLevelMenuItem>();
+            public List<MultiLevelMenuItem> Children;
+
+            public MultiLevelMenuItem(string name)
+            {
+                this.Name = name;
+                this.Children = new List<MultiLevelMenuItem>();
+            }
         }
 
         private static void ShowContextMenu()
@@ -181,34 +186,33 @@ namespace Utils
             IntPtr hMenu = WinAPI.CreatePopupMenu();
             if (hMenu == IntPtr.Zero) return;
 
-            Dictionary<string, MultiLevelMenuItem> items = new();
-            Queue<MultiLevelMenuItem> menus = new();
+            var allMenuItems = new Dictionary<string, MultiLevelMenuItem>();
+            var menuQueue = new Queue<MultiLevelMenuItem>();
+
             foreach (var info in ActionMappings)
             {
-                string[] paths = info.Value.Split(MultiLevelSplitChar);
-                var crtPath = string.Empty;
                 MultiLevelMenuItem parent = null;
-                foreach (var p in paths)
+
+                string[] menuPaths = info.Value.Split(Path.DirectorySeparatorChar);
+                string crtPath = string.Empty;
+
+                foreach (var path in menuPaths)
                 {
-                    crtPath += p + "\\";
                     MultiLevelMenuItem crt = null;
-                    if (items.TryGetValue(crtPath, out var item))
-                    {
+                    crtPath += path + Path.DirectorySeparatorChar;
+
+                    if (allMenuItems.TryGetValue(crtPath, out var item))
                         crt = item;
-                    }
                     else
                     {
-                        crt = new MultiLevelMenuItem();
-                        crt.Name = p;
-                        items.Add(crtPath, crt);
+                        crt = new MultiLevelMenuItem(path);
+                        allMenuItems.Add(crtPath, crt);
                     }
 
                     if (parent == null)
                     {
-                        if (menus.Contains(crt) == false)
-                        {
-                            menus.Enqueue(crt);
-                        }
+                        if (!menuQueue.Contains(crt))
+                            menuQueue.Enqueue(crt);
                     }
                     else
                     {
@@ -221,19 +225,17 @@ namespace Utils
 
                 if (parent == null)
                 {
-                    Debug.LogError($"Wrong Path: {info.Value}");
+                    Debug.LogError($"Invalid Menu Item: \"{info.Value}\"");
+                    continue;
                 }
-                else
-                {
-                    parent.ID = info.Key;
-                }
+
+                parent.ID = info.Key;
             }
 
-            while (menus.Count > 0)
+            while (menuQueue.Count > 0)
             {
-                var crt = menus.Dequeue();
-
-                var parent = crt.Parent?.MenuID ?? hMenu;
+                MultiLevelMenuItem crt = menuQueue.Dequeue();
+                IntPtr parent = crt.Parent?.MenuID ?? hMenu;
 
                 if (crt.Name == SEPARATOR)
                 {
@@ -241,29 +243,17 @@ namespace Utils
                     continue;
                 }
 
-                if (crt.Children.Count > 0)
+                if (crt.Children.Count == 0)
+                    WinAPI.AppendMenu(parent, MF_STRING, crt.ID, crt.Name);
+                else
                 {
                     IntPtr subMenu = WinAPI.CreatePopupMenu();
                     crt.MenuID = subMenu;
                     foreach (var child in crt.Children)
-                    {
-                        menus.Enqueue(child);
-                    }
+                        menuQueue.Enqueue(child);
                     WinAPI.AppendMenu(parent, MF_STRING | MF_POPUP, (uint)subMenu, crt.Name);
                 }
-                else
-                {
-                    WinAPI.AppendMenu(parent, MF_STRING, crt.ID, crt.Name);
-                }
             }
-
-            // foreach (var pair in ActionMappings)
-            // {
-            //     if (pair.Value == SEPARATOR)
-            //         WinAPI.AppendMenu(hMenu, MF_SEPARATOR, 0, null);
-            //     else
-            //         WinAPI.AppendMenu(hMenu, MF_STRING, pair.Key, pair.Value);
-            // }
 
             WinAPI.SetForegroundWindow(messageWindowHandle);
             WinAPI.TrackPopupMenuEx(hMenu, TPM_LEFTALIGN | TPM_BOTTOMALIGN | TPM_LEFTBUTTON, pt.X, pt.Y, messageWindowHandle, IntPtr.Zero);

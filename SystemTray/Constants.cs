@@ -15,7 +15,7 @@ namespace Utils
 
         // private const uint WM_DESTROY = 0x0002;
         private const uint WM_COMMAND = 0x0111;
-        private const uint WM_USER = 0x0400;
+        // private const uint WM_USER = 0x0400;
         private const uint WM_APP = 0x8000;
 
         private const uint TRAY_ICON_MESSAGE = WM_APP + 1;
@@ -27,7 +27,7 @@ namespace Utils
 
         private const uint MF_STRING = 0x00000000;
         private const uint MF_POPUP = 0x00000010;
-        private const uint MF_BYPOSITION = 0x00000400;
+        // private const uint MF_BYPOSITION = 0x00000400;
         private const uint MF_SEPARATOR = 0x00000800;
 
         private const uint TPM_LEFTALIGN = 0x0000;
