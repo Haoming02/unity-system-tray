@@ -73,6 +73,7 @@ namespace Utils
         }
 
         // Delegate Definition
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)] // Ensure WndProc calling convention (Winapi)
         private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
     }
 }
